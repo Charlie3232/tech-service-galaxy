@@ -213,26 +213,21 @@ function renderCalendar() {
         slotIdx++;
       }
       
-      // ✨ 正確加回：文字均分演算法 (字串切割)
-      let spanLen = vEnd - vStart + 1;
+      // ✨ 全新置中邏輯：將完整文字放在長條圖的正中間那一天
       let fullText = ev.name;
       if (ev.time) fullText = ev.time + ' ' + fullText;
-      let chars = Array.from(fullText);
-      let charsPerPart = chars.length / spanLen;
+      let midIndex = Math.floor((vStart + vEnd) / 2); // 算出這段期間的中間點
 
       for(let i = vStart; i <= vEnd; i++) {
-        let partIdx = i - vStart;
-        let strStart = Math.round(partIdx * charsPerPart);
-        let strEnd = Math.round((partIdx + 1) * charsPerPart);
-        let partText = chars.slice(strStart, strEnd).join('');
-        if (!partText || !partText.trim()) partText = '&nbsp;'; // 防止高度塌陷
+        // 只有中間那天才顯示字，其餘天數用空白填滿，視覺上就會完美置中
+        let partText = (i === midIndex) ? fullText : '&nbsp;';
 
         cellSlots[i][slotIdx] = {
           ev: ev,
           isStart: (i === actualStartIndex),
           isEnd: (i === actualEndIndex),
           isMulti: (actualStartIndex !== actualEndIndex),
-          partText: partText // 存入均分文字
+          partText: partText 
         };
       }
     }
@@ -260,9 +255,7 @@ function renderCalendar() {
         }
         
         let bgColor = getCategoryColor(ev.category);
-        
-        // ✨ 正確讀取均分文字
-        let displayText = slotData.partText;
+        let displayText = slotData.partText; // 讀取剛剛分配好的置中文字
 
         dayEventsHTML += `<div class="${classes}" style="background-color: ${bgColor};" onclick="openEditEvent('${ev.id}', event)">${displayText}</div>`;
       }
