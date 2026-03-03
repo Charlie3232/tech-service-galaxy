@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TECHNICAL SERVICE GALAXY</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="login-overlay">
+    <div class="pixel-box login-card">
+      <div class="pixel-title">SECURITY_ACCESS</div>
+      <p class="pixel-text">請輸入歐嚕嚕咒語以登入系統</p>
+      <input type="text" id="login-pwd" class="pixel-input security-mask" placeholder="歐嚕嚕咒語...">
+      <button class="pixel-btn btn-primary" onclick="handleLogin()">進入系統</button>
+    </div>
+  </div>
+
+  <div id="main-ui" style="display:none;">
+    <header><h1 class="pixel-h1">TECHNICAL SERVICE GALAXY</h1></header>
+
+    <div class="layout-container">
+      <nav class="sidebar pixel-border">
+        <button class="nav-btn active" id="btn-tab-main" onclick="switchTab('tab-main')">儀表板<br><small>(Dashboard)</small></button>
+        <button class="nav-btn" id="btn-tab-issues" onclick="switchTab('tab-issues')">任務清單<br><small>(Issues)</small></button>
+      </nav>
+
+      <main class="main-content">
+        
+        <div id="tab-main" class="tab-section">
+          <div class="calendar-container pixel-border">
+            <div class="cal-header">
+              <button class="pixel-btn" onclick="changeCalendarWeek(-1)">&#9664; 往前一週</button>
+              <h2 id="cal-month-year" class="pixel-h1" style="margin:0; font-size:20px;"></h2>
+              <button class="pixel-btn" onclick="changeCalendarWeek(1)">往後一週 &#9654;</button>
+              <button class="pixel-btn btn-add" style="margin-left:auto;" onclick="openEventModal()">+ 新增活動</button>
+            </div>
+            <div class="cal-weekdays">
+              <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+            </div>
+            <div id="cal-grid" class="cal-grid"></div>
+          </div>
+
+          <div class="stats-container pixel-border" style="margin-top: 25px;">
+            <h2 class="pixel-h1" style="font-size:20px; color: var(--pixel-blue); margin-top:0;">人員任務統計 (Owner Stats)</h2>
+            <div id="stats-bars"></div>
+          </div>
+        </div>
+
+        <div id="tab-issues" class="tab-section" style="display:none;">
+          <div class="control-panel pixel-border">
+            <input type="text" id="search-input" class="pixel-input" placeholder="搜尋關鍵字..." oninput="renderIssues()">
+            <div class="filter-group">
+              <div class="custom-select"><div class="select-selected pixel-input" onclick="toggleDropdown('items-owner', event)">負責人 ▾</div><div class="select-items pixel-border" id="items-owner" style="display:none;"></div></div>
+              <div class="custom-select"><div class="select-selected pixel-input" onclick="toggleDropdown('items-status', event)">狀態 ▾</div><div class="select-items pixel-border" id="items-status" style="display:none;"></div></div>
+              <div class="custom-select"><div class="select-selected pixel-input" onclick="toggleDropdown('items-customer', event)">客戶別 ▾</div><div class="select-items pixel-border" id="items-customer" style="display:none;"></div></div>
+            </div>
+            <button class="pixel-btn btn-add" style="line-height: 1.4;" onclick="openModal()">+ 新增<br>任務</button>
+          </div>
+          <div class="todo-grid" id="issue-display"></div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div id="modal-overlay" class="modal-overlay">
+    <div class="pixel-modal navy-theme">
+      <div class="modal-header-bar"><span>TASK_CONFIGURATION_V6.5</span><span class="pixel-close" onclick="closeModal()">[X]</span></div>
+      <form id="issueForm" class="modal-body">
+        <input type="hidden" id="edit-id">
+        <div class="field-grid-73">
+          <div class="field-item"><label class="pixel-label">Issue (任務名稱)</label><input type="text" id="input-issue" class="pixel-input wide highlight-font" required></div>
+          <div class="field-item"><label class="pixel-label">建立日期</label><input type="text" id="input-created-date" class="pixel-input wide" readonly style="opacity:0.6;" required></div>
+        </div>
+        <div class="field-grid-4">
+          <div class="field-item"><label class="pixel-label">Owner</label><select id="input-owner" class="pixel-input" required></select></div>
+          <div class="field-item"><label class="pixel-label">Status</label><select id="input-status" class="pixel-input" required></select></div>
+          <div class="field-item"><label class="pixel-label">客戶別</label><select id="input-customer" class="pixel-input" required></select></div>
+          <div class="field-item"><label class="pixel-label">專案別</label><select id="input-project" class="pixel-input" required></select></div>
+        </div>
+        <div class="field-grid">
+          <div class="field-item"><label class="pixel-label">預計完成日</label><input type="date" id="input-deadline" class="pixel-input date-picker-custom" required></div>
+          <div class="field-item">
+            <label class="pixel-label">優先級</label>
+            <select id="input-priority" class="pixel-input" required>
+              <option value="" disabled selected>請選擇...</option><option value="1_高">高</option><option value="2_一般">一般</option><option value="3_低">低</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-grid">
+          <div class="field-item"><label class="pixel-label">任務描述</label><textarea id="input-description" class="pixel-input scroll" rows="8" required></textarea></div>
+          <div class="field-item"><label class="pixel-label">事項紀錄</label><textarea id="input-records" class="pixel-input scroll" rows="8" required></textarea></div>
+        </div>
+        <div class="field-full">
+          <label class="pixel-label">相關檔案連結 <button type="button" class="mini-plus-btn" onclick="addLinkField()">[+] 新增</button></label>
+          <div id="link-group"><input type="text" class="pixel-input wide link-entry" placeholder="https://..."></div>
+        </div>
+        <div class="modal-footer" style="display: flex; justify-content: space-between; width: 100%;">
+          <button type="button" id="btn-delete" class="pixel-btn" style="display:none; background:#ff0055; color:#fff; border-color:#ff0055;" onclick="deleteIssue()">[ 刪除專案 ]</button>
+          <div style="display: flex; gap: 10px; margin-left: auto;">
+            <button type="button" class="pixel-btn btn-secondary" onclick="closeModal()">[ 取消 ]</button>
+            <button type="button" id="submit-btn" class="pixel-btn btn-primary" onclick="submitIssue()">[ 建立完成 ]</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="event-modal-overlay" class="modal-overlay">
+    <div class="pixel-modal navy-theme" style="height: auto; max-height: 90vh;">
+      <div class="modal-header-bar"><span>CALENDAR_EVENT_CONFIG</span><span class="pixel-close" onclick="closeEventModal()">[X]</span></div>
+      <form id="eventForm" class="modal-body">
+        <input type="hidden" id="edit-ev-id">
+        
+        <div class="field-grid-73">
+          <div class="field-item">
+            <label class="pixel-label">活動名稱</label>
+            <input type="text" id="ev-name" class="pixel-input wide highlight-font" required>
+          </div>
+          <div class="field-item">
+            <label class="pixel-label">活動類別 (顏色)</label>
+            <select id="ev-category" class="pixel-input" required></select>
+          </div>
+        </div>
+
+        <div class="field-item" style="margin-bottom: 15px;">
+          <label class="checkbox-label" style="display:inline-flex; width:auto; border: 2px dashed #555; padding: 10px; background: rgba(255,255,255,0.05);">
+            <input type="checkbox" id="ev-has-end" onchange="toggleEndDate()"> 跨日/設定結束時間
+          </label>
+        </div>
+
+        <div class="field-grid">
+          <div class="field-item"><label class="pixel-label">開始日期</label><input type="date" id="ev-date" class="pixel-input date-picker-custom" required></div>
+          <div class="field-item">
+            <label class="pixel-label">開始時間 (HH:MM)</label>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <input type="number" id="ev-time-h" class="pixel-input" placeholder="時" style="width:45%; text-align:center;" min="0" max="23" required>
+              <span style="font-size:24px; color:var(--pixel-blue);">:</span>
+              <input type="number" id="ev-time-m" class="pixel-input" placeholder="分" style="width:45%; text-align:center;" min="0" max="59" required>
+            </div>
+          </div>
+        </div>
+
+        <div class="field-grid" id="end-date-group" style="display:none; margin-bottom: 15px;">
+          <div class="field-item"><label class="pixel-label" style="color:#ff9800;">結束日期</label><input type="date" id="ev-end-date" class="pixel-input date-picker-custom"></div>
+          <div class="field-item">
+            <label class="pixel-label" style="color:#ff9800;">結束時間 (HH:MM)</label>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <input type="number" id="ev-end-time-h" class="pixel-input" placeholder="時" style="width:45%; text-align:center;" min="0" max="23">
+              <span style="font-size:24px; color:var(--pixel-blue);">:</span>
+              <input type="number" id="ev-end-time-m" class="pixel-input" placeholder="分" style="width:45%; text-align:center;" min="0" max="59">
+            </div>
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <div class="field-item">
+            <label class="pixel-label">參與人員 (多選)</label>
+            <div class="custom-select" style="width:100%;">
+              <div class="select-selected pixel-input" id="ev-participants-text" onclick="toggleDropdown('ev-participants', event)">點擊選擇人員 ▾</div>
+              <div class="select-items pixel-border" id="ev-participants" style="display:none; position:relative;"></div>
+            </div>
+          </div>
+          <div class="field-item"><label class="pixel-label">地點</label><input type="text" id="ev-location" class="pixel-input wide" required></div>
+        </div>
+
+        <div class="modal-footer" style="margin-top:20px; display:flex; justify-content:space-between; width:100%;">
+          <button type="button" id="btn-ev-delete" class="pixel-btn" style="display:none; background:#ff0055; color:#fff; border-color:#ff0055;" onclick="deleteEvent()">[ 刪除活動 ]</button>
+          <div style="display:flex; gap:10px; margin-left:auto;">
+            <button type="button" class="pixel-btn btn-secondary" onclick="closeEventModal()">[ 取消 ]</button>
+            <button type="button" id="ev-submit-btn" class="pixel-btn btn-primary" onclick="submitEvent()">[ 建立活動 ]</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+
+</body>
+</html>
