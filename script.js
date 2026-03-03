@@ -137,7 +137,7 @@ const getCategoryColor = (catName) => {
   return '#555555'; 
 };
 
-// ================= 行事曆功能 (加入時間排序與文字均分) =================
+// ================= 行事曆功能 =================
 function changeCalendarWeek(offsetWeeks) {
   calBaseDate.setDate(calBaseDate.getDate() + (offsetWeeks * 7));
   renderCalendar();
@@ -174,19 +174,16 @@ function renderCalendar() {
 
   let cellSlots = Array.from({length: 28}, () => []);
 
-  // ✨ 排序邏輯優化：日期優先 -> 時間優先 -> 跨日長度優先
   let viewEvents = allEvents.filter(ev => {
     let evStart = parseDateSafe(ev.date);
     let evEnd = ev.endDate ? parseDateSafe(ev.endDate) : evStart;
     return evEnd >= calDays[0].time && evStart <= calDays[27].time;
   }).sort((a, b) => {
     let aStart = parseDateSafe(a.date), bStart = parseDateSafe(b.date);
-    if (aStart !== bStart) return aStart - bStart;
-    
+    if(aStart !== bStart) return aStart - bStart;
     let aTime = String(a.time || "00:00");
     let bTime = String(b.time || "00:00");
     if (aTime !== bTime) return aTime.localeCompare(bTime); 
-    
     let aLen = (parseDateSafe(a.endDate || a.date) - aStart);
     let bLen = (parseDateSafe(b.endDate || b.date) - bStart);
     return bLen - aLen; 
@@ -216,7 +213,7 @@ function renderCalendar() {
         slotIdx++;
       }
       
-      // ✨ 文字均分演算法 (字串切割)
+      // ✨ 正確加回：文字均分演算法 (字串切割)
       let spanLen = vEnd - vStart + 1;
       let fullText = ev.name;
       if (ev.time) fullText = ev.time + ' ' + fullText;
@@ -235,7 +232,7 @@ function renderCalendar() {
           isStart: (i === actualStartIndex),
           isEnd: (i === actualEndIndex),
           isMulti: (actualStartIndex !== actualEndIndex),
-          partText: partText
+          partText: partText // 存入均分文字
         };
       }
     }
@@ -263,7 +260,9 @@ function renderCalendar() {
         }
         
         let bgColor = getCategoryColor(ev.category);
-        let displayText = slotData.partText; // 使用切分好的均分文字
+        
+        // ✨ 正確讀取均分文字
+        let displayText = slotData.partText;
 
         dayEventsHTML += `<div class="${classes}" style="background-color: ${bgColor};" onclick="openEditEvent('${ev.id}', event)">${displayText}</div>`;
       }
