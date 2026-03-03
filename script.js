@@ -96,6 +96,9 @@ async function fetchData() {
   fillCheckboxes('items-customer', 'customers', data, 'renderIssues()');
   fillCheckboxes('ev-participants', 'owners', data, 'updateParticipantsText()');
   
+  // ✨ 為統計區塊綁定專屬狀態篩選器，並觸發 renderStats()
+  fillCheckboxes('stats-status', 'statusList', data, 'renderStats()');
+  
   fillFormSelect('input-owner', 'owners');
   fillFormSelect('input-status', 'statusList');
   fillFormSelect('input-customer', 'customers');
@@ -137,7 +140,7 @@ const getCategoryColor = (catName) => {
   return '#555555'; 
 };
 
-// ================= 行事曆功能 (終極置中長條演算法) =================
+// ================= 行事曆功能 =================
 function changeCalendarWeek(offsetWeeks) {
   calBaseDate.setDate(calBaseDate.getDate() + (offsetWeeks * 7));
   renderCalendar();
@@ -174,7 +177,6 @@ function renderCalendar() {
 
   let cellSlots = Array.from({length: 28}, () => []);
 
-  // 排序：日期優先 -> 時間優先 -> 跨日長度優先
   let viewEvents = allEvents.filter(ev => {
     let evStart = parseDateSafe(ev.date);
     let evEnd = ev.endDate ? parseDateSafe(ev.endDate) : evStart;
@@ -216,12 +218,10 @@ function renderCalendar() {
       
       for(let i = vStart; i <= vEnd; i++) {
         let currentDayOfWeek = calDays[i].dateObj.getDay();
-        // 判斷是否為一個「連續段落」的開頭（真正的開始日，或每週的星期日）
         let isSegmentStart = (i === vStart) || (currentDayOfWeek === 0);
         
         let segmentSpan = 1;
         if (isSegmentStart) {
-          // 計算這個段落在本週內跨了幾天
           let endOfThisWeek = i + (6 - currentDayOfWeek);
           let segmentEnd = Math.min(vEnd, endOfThisWeek);
           segmentSpan = segmentEnd - i + 1;
@@ -262,21 +262,17 @@ function renderCalendar() {
         
         let bgColor = getCategoryColor(ev.category);
 
-        // ✨ 完美置中魔法：只在段落開頭加入橫跨長度的透明文字框
         if (slotData.isSegmentStart) {
           let fullText = ev.name;
           if (ev.time && slotData.isStart) fullText = ev.time + ' ' + fullText;
           
           let spanLen = slotData.segmentSpan || 1;
-          // 19px 是補償格子之間的空隙 (gap 5px + border 4px + padding 10px)
           let textWidth = `calc(${spanLen * 100}% + ${(spanLen - 1) * 19}px)`;
           
           let innerSpan = `<span style="position: absolute; top: 0; left: 0; width: ${textWidth}; text-align: center; color: #fff; pointer-events: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; z-index: 60;">${fullText}</span>`;
           
-          // z-index: 50 確保文字圖層蓋在後面的背景顏色上
           dayEventsHTML += `<div class="${classes}" style="background-color: ${bgColor}; position: relative; z-index: 50; overflow: visible;" onclick="openEditEvent('${ev.id}', event)">${innerSpan}</div>`;
         } else {
-          // 其餘天數只負責呈現背景顏色，文字設為透明以保持高度
           dayEventsHTML += `<div class="${classes}" style="background-color: ${bgColor}; color: transparent; position: relative; z-index: 5;" onclick="openEditEvent('${ev.id}', event)">&nbsp;</div>`;
         }
       }
@@ -424,22 +420,27 @@ async function deleteEvent() {
   isMutating = false;
 }
 
-// ================= 負責人統計 =================
+// ================= 負責人統計 (✨ 加入狀態篩選) =================
 function renderStats() {
   const container = document.getElementById('stats-bars');
   const ownerCounts = {};
   let totalIssues = 0;
 
+  const fStats = getCheckedValues('stats-status'); // 抓取篩選狀態
+
   allIssues.forEach(i => {
     const stat = String(i.status);
-    if(stat === "已解決" || stat === "Done") return; 
+    
+    // 如果篩選器有打勾，而且任務狀態不在打勾名單內，就跳過不計算
+    if(fStats.length > 0 && !fStats.includes(stat)) return; 
+    
     const owner = String(i.owner);
     if(!owner) return;
     ownerCounts[owner] = (ownerCounts[owner] || 0) + 1;
     totalIssues++;
   });
 
-  if(totalIssues === 0) { container.innerHTML = "<p>目前沒有進行中的任務。</p>"; return; }
+  if(totalIssues === 0) { container.innerHTML = "<p>目前沒有符合條件的任務。</p>"; return; }
 
   const colors = ['#00d2ff', '#0f0', '#ffeb3b', '#ff0055', '#a020f0', '#ff9800', '#00bcd4'];
 
@@ -511,10 +512,11 @@ function renderIssues() {
     const isDone = (stat === "已解決" || stat === "Done");
     const urgentClass = (!isDone && isTaskUrgent(i.deadline, stat)) ? 'urgent-card' : '';
     
+    // ✨ 在卡片下方加入了預計完成日 (i.deadline) 的顯示
     return `<div class="pebble ${isDone ? 'resolved-card' : ''} ${urgentClass}" onclick="openEdit('${i.id}')">
       <div style="font-size:12px; margin-bottom:8px; color:${(String(i.priority).includes('高') || String(i.priority).includes('Critical')) ? '#ff0055' : 'var(--pixel-blue)'}">[ ${stat} ]</div>
       <div style="font-size:22px; margin-bottom:12px; line-height:1.3;">${i.issue}</div>
-      <div style="font-size:14px; color:#888;">${i.owner} | ${i.customer} | ${i.project}<br><small>${i.date}</small></div>
+      <div style="font-size:14px; color:#888;">${i.owner} | ${i.customer} | ${i.project}<br><small>建立: ${i.date} | 預計: ${i.deadline || '未定'}</small></div>
     </div>`;
   }).join('');
 }
