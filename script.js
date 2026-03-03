@@ -137,7 +137,7 @@ const getCategoryColor = (catName) => {
   return '#555555'; 
 };
 
-// ================= 行事曆功能 =================
+// ================= 行事曆功能 (終極置中長條演算法) =================
 function changeCalendarWeek(offsetWeeks) {
   calBaseDate.setDate(calBaseDate.getDate() + (offsetWeeks * 7));
   renderCalendar();
@@ -174,6 +174,7 @@ function renderCalendar() {
 
   let cellSlots = Array.from({length: 28}, () => []);
 
+  // 排序：日期優先 -> 時間優先 -> 跨日長度優先
   let viewEvents = allEvents.filter(ev => {
     let evStart = parseDateSafe(ev.date);
     let evEnd = ev.endDate ? parseDateSafe(ev.endDate) : evStart;
@@ -213,21 +214,26 @@ function renderCalendar() {
         slotIdx++;
       }
       
-      // ✨ 全新置中邏輯：將完整文字放在長條圖的正中間那一天
-      let fullText = ev.name;
-      if (ev.time) fullText = ev.time + ' ' + fullText;
-      let midIndex = Math.floor((vStart + vEnd) / 2); // 算出這段期間的中間點
-
       for(let i = vStart; i <= vEnd; i++) {
-        // 只有中間那天才顯示字，其餘天數用空白填滿，視覺上就會完美置中
-        let partText = (i === midIndex) ? fullText : '&nbsp;';
+        let currentDayOfWeek = calDays[i].dateObj.getDay();
+        // 判斷是否為一個「連續段落」的開頭（真正的開始日，或每週的星期日）
+        let isSegmentStart = (i === vStart) || (currentDayOfWeek === 0);
+        
+        let segmentSpan = 1;
+        if (isSegmentStart) {
+          // 計算這個段落在本週內跨了幾天
+          let endOfThisWeek = i + (6 - currentDayOfWeek);
+          let segmentEnd = Math.min(vEnd, endOfThisWeek);
+          segmentSpan = segmentEnd - i + 1;
+        }
 
         cellSlots[i][slotIdx] = {
           ev: ev,
           isStart: (i === actualStartIndex),
           isEnd: (i === actualEndIndex),
           isMulti: (actualStartIndex !== actualEndIndex),
-          partText: partText 
+          isSegmentStart: isSegmentStart,
+          segmentSpan: segmentSpan 
         };
       }
     }
@@ -255,9 +261,24 @@ function renderCalendar() {
         }
         
         let bgColor = getCategoryColor(ev.category);
-        let displayText = slotData.partText; // 讀取剛剛分配好的置中文字
 
-        dayEventsHTML += `<div class="${classes}" style="background-color: ${bgColor};" onclick="openEditEvent('${ev.id}', event)">${displayText}</div>`;
+        // ✨ 完美置中魔法：只在段落開頭加入橫跨長度的透明文字框
+        if (slotData.isSegmentStart) {
+          let fullText = ev.name;
+          if (ev.time && slotData.isStart) fullText = ev.time + ' ' + fullText;
+          
+          let spanLen = slotData.segmentSpan || 1;
+          // 19px 是補償格子之間的空隙 (gap 5px + border 4px + padding 10px)
+          let textWidth = `calc(${spanLen * 100}% + ${(spanLen - 1) * 19}px)`;
+          
+          let innerSpan = `<span style="position: absolute; top: 0; left: 0; width: ${textWidth}; text-align: center; color: #fff; pointer-events: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; z-index: 60;">${fullText}</span>`;
+          
+          // z-index: 50 確保文字圖層蓋在後面的背景顏色上
+          dayEventsHTML += `<div class="${classes}" style="background-color: ${bgColor}; position: relative; z-index: 50; overflow: visible;" onclick="openEditEvent('${ev.id}', event)">${innerSpan}</div>`;
+        } else {
+          // 其餘天數只負責呈現背景顏色，文字設為透明以保持高度
+          dayEventsHTML += `<div class="${classes}" style="background-color: ${bgColor}; color: transparent; position: relative; z-index: 5;" onclick="openEditEvent('${ev.id}', event)">&nbsp;</div>`;
+        }
       }
     }
 
