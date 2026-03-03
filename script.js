@@ -137,7 +137,7 @@ const getCategoryColor = (catName) => {
   return '#555555'; 
 };
 
-// ================= 行事曆功能 =================
+// ================= 行事曆功能 (加入時間排序與文字均分) =================
 function changeCalendarWeek(offsetWeeks) {
   calBaseDate.setDate(calBaseDate.getDate() + (offsetWeeks * 7));
   renderCalendar();
@@ -146,6 +146,7 @@ function changeCalendarWeek(offsetWeeks) {
 function parseDateSafe(dStr) {
   if (!dStr) return 0;
   let parts = String(dStr).split('-');
+  if (parts.length < 3) return 0;
   return new Date(parts[0], parts[1] - 1, parts[2]).getTime();
 }
 
@@ -173,16 +174,19 @@ function renderCalendar() {
 
   let cellSlots = Array.from({length: 28}, () => []);
 
+  // ✨ 排序邏輯優化：日期優先 -> 時間優先 -> 跨日長度優先
   let viewEvents = allEvents.filter(ev => {
     let evStart = parseDateSafe(ev.date);
     let evEnd = ev.endDate ? parseDateSafe(ev.endDate) : evStart;
     return evEnd >= calDays[0].time && evStart <= calDays[27].time;
   }).sort((a, b) => {
     let aStart = parseDateSafe(a.date), bStart = parseDateSafe(b.date);
-    if(aStart !== bStart) return aStart - bStart;
-    let aTime = String(a.time) || "00:00";
-    let bTime = String(b.time) || "00:00";
+    if (aStart !== bStart) return aStart - bStart;
+    
+    let aTime = String(a.time || "00:00");
+    let bTime = String(b.time || "00:00");
     if (aTime !== bTime) return aTime.localeCompare(bTime); 
+    
     let aLen = (parseDateSafe(a.endDate || a.date) - aStart);
     let bLen = (parseDateSafe(b.endDate || b.date) - bStart);
     return bLen - aLen; 
@@ -192,28 +196,46 @@ function renderCalendar() {
     let evStart = parseDateSafe(ev.date);
     let evEnd = ev.endDate ? parseDateSafe(ev.endDate) : evStart;
 
-    let startIndex = calDays.findIndex(d => d.time === evStart);
-    let endIndex = calDays.findIndex(d => d.time === evEnd);
+    let actualStartIndex = calDays.findIndex(d => d.time === evStart);
+    let actualEndIndex = calDays.findIndex(d => d.time === evEnd);
 
-    if(startIndex === -1 && evStart < calDays[0].time) startIndex = 0;
-    if(endIndex === -1 && evEnd > calDays[27].time) endIndex = 27;
+    if(actualStartIndex === -1) actualStartIndex = (evStart < calDays[0].time) ? -1 : 999;
+    if(actualEndIndex === -1) actualEndIndex = (evEnd > calDays[27].time) ? 999 : -1;
 
-    if(startIndex !== -1 && endIndex !== -1) {
+    let vStart = Math.max(0, actualStartIndex);
+    let vEnd = Math.min(27, actualEndIndex);
+
+    if (vStart <= vEnd) {
       let slotIdx = 0;
       while(true) {
         let isFree = true;
-        for(let i = startIndex; i <= endIndex; i++) {
+        for(let i = vStart; i <= vEnd; i++) {
           if(cellSlots[i][slotIdx]) { isFree = false; break; }
         }
         if(isFree) break;
         slotIdx++;
       }
-      for(let i = startIndex; i <= endIndex; i++) {
+      
+      // ✨ 文字均分演算法 (字串切割)
+      let spanLen = vEnd - vStart + 1;
+      let fullText = ev.name;
+      if (ev.time) fullText = ev.time + ' ' + fullText;
+      let chars = Array.from(fullText);
+      let charsPerPart = chars.length / spanLen;
+
+      for(let i = vStart; i <= vEnd; i++) {
+        let partIdx = i - vStart;
+        let strStart = Math.round(partIdx * charsPerPart);
+        let strEnd = Math.round((partIdx + 1) * charsPerPart);
+        let partText = chars.slice(strStart, strEnd).join('');
+        if (!partText || !partText.trim()) partText = '&nbsp;'; // 防止高度塌陷
+
         cellSlots[i][slotIdx] = {
           ev: ev,
-          isStart: (i === startIndex && evStart >= calDays[0].time),
-          isEnd: (i === endIndex && evEnd <= calDays[27].time),
-          isMulti: (startIndex !== endIndex)
+          isStart: (i === actualStartIndex),
+          isEnd: (i === actualEndIndex),
+          isMulti: (actualStartIndex !== actualEndIndex),
+          partText: partText
         };
       }
     }
@@ -241,9 +263,7 @@ function renderCalendar() {
         }
         
         let bgColor = getCategoryColor(ev.category);
-        let showText = slotData.isStart || (i % 7 === 0);
-        let displayTime = slotData.isStart ? (ev.time ? ev.time + ' ' : '') : '';
-        let displayText = showText ? displayTime + ev.name : '&nbsp;';
+        let displayText = slotData.partText; // 使用切分好的均分文字
 
         dayEventsHTML += `<div class="${classes}" style="background-color: ${bgColor};" onclick="openEditEvent('${ev.id}', event)">${displayText}</div>`;
       }
