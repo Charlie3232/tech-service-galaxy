@@ -45,11 +45,19 @@
           </div>
 
           <div class="stats-container pixel-border" style="margin-top: 25px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <div class="stats-header-wrap">
               <h2 class="pixel-h1" style="font-size:20px; color: var(--pixel-blue); margin:0;">人員任務統計</h2>
-              <div class="custom-select" style="min-width: 140px;">
-                <div class="select-selected pixel-input" style="padding: 8px 12px; font-size: 16px;" onclick="toggleDropdown('stats-status', event)">狀態篩選 ▾</div>
-                <div class="select-items pixel-border" id="stats-status" style="display:none;"></div>
+              
+              <div class="stats-controls">
+                <div class="month-filter">
+                  <input type="month" id="stats-month-start" class="pixel-input date-picker-custom" onchange="renderStats()">
+                  <span>~</span>
+                  <input type="month" id="stats-month-end" class="pixel-input date-picker-custom" onchange="renderStats()">
+                </div>
+                <div class="custom-select" style="min-width: 140px;">
+                  <div class="select-selected pixel-input" style="padding: 8px 12px; font-size: 16px;" onclick="toggleDropdown('stats-status', event)">狀態篩選 ▾</div>
+                  <div class="select-items pixel-border" id="stats-status" style="display:none;"></div>
+                </div>
               </div>
             </div>
             <div id="stats-bars"></div>
@@ -74,7 +82,7 @@
 
   <div id="modal-overlay" class="modal-overlay">
     <div class="pixel-modal navy-theme">
-      <div class="modal-header-bar"><span>TASK_CONFIGURATION_V6.7</span><span class="pixel-close" onclick="closeModal()">[X]</span></div>
+      <div class="modal-header-bar"><span>TASK_CONFIGURATION_V6.8</span><span class="pixel-close" onclick="closeModal()">[X]</span></div>
       <form id="issueForm" class="modal-body">
         <input type="hidden" id="edit-id">
         <div class="field-grid-73">
