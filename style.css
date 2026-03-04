@@ -10,7 +10,7 @@ body { background: var(--bg-color); color: #fff; font-family: var(--main-font); 
 
 .security-mask { -webkit-text-security: disc; }
 #login-overlay { position: fixed; inset: 0; background: #000; display: flex; justify-content: center; align-items: center; z-index: 10000; }
-.login-card { padding: 50px; border: 6px solid #6e45e2; background: #111; text-align: center; box-shadow: 10px 10px 0 #000; }
+.login-card { padding: 50px; border: 6px solid #6e45e2; background: #111; text-align: center; box-shadow: 10px 10px 0 #000; max-width: 90%; }
 
 .navy-theme { background: var(--navy-dark) !important; border: 6px solid var(--pixel-blue) !important; }
 .field-grid-73 { display: grid; grid-template-columns: 7.5fr 2.5fr; gap: 20px; }
@@ -22,7 +22,7 @@ body { background: var(--bg-color); color: #fff; font-family: var(--main-font); 
 .highlight-font { font-size: 22px !important; }
 
 .layout-container { display: flex; height: calc(100vh - 80px); width: 95%; max-width: 1600px; margin: 0 auto; gap: 20px; padding-bottom: 20px;}
-.sidebar { width: 180px; background: #1a1a1a; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+.sidebar { width: 180px; background: #1a1a1a; padding: 20px; display: flex; flex-direction: column; gap: 15px; flex-shrink: 0; }
 .main-content { flex: 1; overflow-y: auto; padding-right: 10px; }
 .nav-btn { background: #111; color: var(--pixel-blue); border: 4px solid #3e4a6d; padding: 15px 10px; font-family: var(--main-font); cursor: pointer; text-align: center; transition: 0.2s; line-height: 1.5; }
 .nav-btn:hover { background: #3e4a6d; color: #fff; }
@@ -40,7 +40,8 @@ body { background: var(--bg-color); color: #fff; font-family: var(--main-font); 
 .cal-date-num { font-size: 16px; color: #888; position: absolute; top: 5px; right: 8px; }
 .cal-cell.today .cal-date-num { color: var(--pixel-green); font-weight: bold; }
 
-.cal-event { color: #fff; font-size: 13px; height: 30px; line-height: 30px; padding: 0 6px; margin-bottom: 3px; border-radius: 4px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight:bold; box-sizing: border-box; }
+/* 行事曆長條圖高度放大至 30px，隱形佔位改成 33px */
+.cal-event { color: #fff; font-size: 14px; height: 30px; line-height: 30px; padding: 0 6px; margin-bottom: 3px; border-radius: 4px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight:bold; box-sizing: border-box; text-align: center; }
 .cal-event:hover { filter: brightness(1.2); }
 .cal-event-spacer { height: 33px; width: 100%; } 
 .cal-event.multi-start { margin-right: -7px; border-top-right-radius: 0; border-bottom-right-radius: 0; position: relative; z-index: 5; }
@@ -65,12 +66,7 @@ body { background: var(--bg-color); color: #fff; font-family: var(--main-font); 
 .todo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
 .pebble { background: #111; border: 4px solid #fff; padding: 25px; min-height: 180px; cursor: pointer; text-align: center; transition: 0.2s; }
 .resolved-card { opacity: 0.4; border-color: #555 !important; filter: grayscale(1); }
-
-/* ✨ 新增：死線預警樣式 (淡淡的紅) */
-.urgent-card { 
-  background: rgba(255, 0, 85, 0.15) !important; 
-  border-color: #ff0055 !important; 
-}
+.urgent-card { background: rgba(255, 0, 85, 0.15) !important; border-color: #ff0055 !important; }
 
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 999; }
 .pixel-modal { width: 96vw; height: 92vh; display: flex; flex-direction: column; }
@@ -79,6 +75,42 @@ body { background: var(--bg-color); color: #fff; font-family: var(--main-font); 
 .pixel-label { color: var(--pixel-blue); font-size: 18px; margin-bottom: 5px; display: block; }
 .pixel-btn { padding: 15px 30px; font-family: var(--main-font); font-size: 16px; border: 4px solid #fff; cursor: pointer; }
 .btn-primary { background: #005f73; color: #fff; }
-
 .btn-add { background: #6e45e2; color: #fff; }
 
+/* ================= 📱 手機版 RWD 響應式優化 ================= */
+@media (max-width: 850px) {
+  /* 整體排版改為垂直堆疊，解除鎖定高度 */
+  .layout-container { flex-direction: column; height: auto; min-height: calc(100vh - 80px); overflow: visible; padding-bottom: 40px; width: 98%; }
+  
+  /* 側邊欄改為頂部橫向導覽列 */
+  .sidebar { width: 100%; flex-direction: row; padding: 10px; justify-content: center; z-index: 10; border-bottom: 4px solid #3e4a6d; }
+  .nav-btn { flex: 1; margin: 0 5px; padding: 12px 5px; font-size: 14px; }
+  
+  /* 主要內容區放寬限制 */
+  .main-content { overflow: visible; padding-right: 0; }
+  header h1 { font-size: 22px; text-align: center; line-height: 1.5; padding: 10px; }
+
+  /* 任務清單改為單欄排列 */
+  .todo-grid { grid-template-columns: 1fr; }
+  .control-panel { flex-direction: column; align-items: stretch; gap: 15px; padding: 15px; }
+  .filter-group { flex-direction: column; width: 100%; }
+  .custom-select { width: 100%; }
+
+  /* 表單視窗欄位全部改為垂直排列 */
+  .field-grid-73, .field-grid-4, .field-grid { grid-template-columns: 1fr; gap: 15px; }
+  .pixel-modal { width: 95vw; height: 95vh; }
+  .modal-body { padding: 15px; }
+  .modal-header-bar { padding: 15px; font-size: 16px; }
+
+  /* 行事曆防變形魔法 (限制最小寬度，允許手指左右滑動) */
+  .calendar-container { overflow-x: auto; padding: 15px 10px; }
+  .cal-grid, .cal-weekdays { min-width: 800px; /* 鎖定最小寬度，確保跨日文字與格子不被壓扁 */ }
+  
+  /* 行事曆頂部按鈕重排 */
+  .cal-header { flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .cal-header h2 { order: -1; width: 100%; text-align: center; margin-bottom: 10px !important; }
+  .cal-header .pixel-btn { padding: 12px; font-size: 14px; margin: 0 !important; flex: 1; text-align: center;}
+  
+  /* 統計圖表文字調整 */
+  .stat-label { width: 85px; font-size: 13px; }
+}
