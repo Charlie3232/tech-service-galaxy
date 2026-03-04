@@ -96,7 +96,6 @@ async function fetchData() {
   fillCheckboxes('items-customer', 'customers', data, 'renderIssues()');
   fillCheckboxes('ev-participants', 'owners', data, 'updateParticipantsText()');
   
-  // ✨ 為統計區塊綁定專屬狀態篩選器，並觸發 renderStats()
   fillCheckboxes('stats-status', 'statusList', data, 'renderStats()');
   
   fillFormSelect('input-owner', 'owners');
@@ -420,19 +419,29 @@ async function deleteEvent() {
   isMutating = false;
 }
 
-// ================= 負責人統計 (✨ 加入狀態篩選) =================
+// ================= 負責人統計 (✨ 加入建立日期年月區間篩選) =================
 function renderStats() {
   const container = document.getElementById('stats-bars');
   const ownerCounts = {};
   let totalIssues = 0;
 
-  const fStats = getCheckedValues('stats-status'); // 抓取篩選狀態
+  const fStats = getCheckedValues('stats-status'); 
+  const startMonth = document.getElementById('stats-month-start').value; // YYYY-MM
+  const endMonth = document.getElementById('stats-month-end').value;     // YYYY-MM
 
   allIssues.forEach(i => {
     const stat = String(i.status);
-    
-    // 如果篩選器有打勾，而且任務狀態不在打勾名單內，就跳過不計算
     if(fStats.length > 0 && !fStats.includes(stat)) return; 
+    
+    // ✨ 建立日期年月篩選器邏輯
+    if (i.date) {
+      let issueMonth = String(i.date).substring(0, 7); // 擷取前7碼 (YYYY-MM)
+      if (startMonth && issueMonth < startMonth) return;
+      if (endMonth && issueMonth > endMonth) return;
+    } else if (startMonth || endMonth) {
+      // 如果有開篩選器但任務沒有日期，則不列入計算
+      return; 
+    }
     
     const owner = String(i.owner);
     if(!owner) return;
@@ -440,7 +449,7 @@ function renderStats() {
     totalIssues++;
   });
 
-  if(totalIssues === 0) { container.innerHTML = "<p>目前沒有符合條件的任務。</p>"; return; }
+  if(totalIssues === 0) { container.innerHTML = "<p style='color:#888;'>此區間/狀態內沒有任務記錄。</p>"; return; }
 
   const colors = ['#00d2ff', '#0f0', '#ffeb3b', '#ff0055', '#a020f0', '#ff9800', '#00bcd4'];
 
@@ -512,7 +521,6 @@ function renderIssues() {
     const isDone = (stat === "已解決" || stat === "Done");
     const urgentClass = (!isDone && isTaskUrgent(i.deadline, stat)) ? 'urgent-card' : '';
     
-    // ✨ 在卡片下方加入了預計完成日 (i.deadline) 的顯示
     return `<div class="pebble ${isDone ? 'resolved-card' : ''} ${urgentClass}" onclick="openEdit('${i.id}')">
       <div style="font-size:12px; margin-bottom:8px; color:${(String(i.priority).includes('高') || String(i.priority).includes('Critical')) ? '#ff0055' : 'var(--pixel-blue)'}">[ ${stat} ]</div>
       <div style="font-size:22px; margin-bottom:12px; line-height:1.3;">${i.issue}</div>
