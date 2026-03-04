@@ -50,12 +50,14 @@
               
               <div class="stats-controls">
                 <div class="month-filter">
+                  <span style="color:var(--pixel-blue); font-size:14px;">建立區間:</span>
                   <input type="month" id="stats-month-start" class="pixel-input date-picker-custom" onchange="renderStats()">
-                  <span>~</span>
+                  <span style="color:#fff;">~</span>
                   <input type="month" id="stats-month-end" class="pixel-input date-picker-custom" onchange="renderStats()">
+                  <button type="button" class="pixel-btn btn-secondary" style="padding: 8px; font-size:12px; border-width: 2px;" onclick="document.getElementById('stats-month-start').value=''; document.getElementById('stats-month-end').value=''; renderStats();">清除</button>
                 </div>
-                <div class="custom-select" style="min-width: 140px;">
-                  <div class="select-selected pixel-input" style="padding: 8px 12px; font-size: 16px;" onclick="toggleDropdown('stats-status', event)">狀態篩選 ▾</div>
+                <div class="custom-select" style="min-width: 160px;">
+                  <div id="stats-status-text" class="select-selected pixel-input" style="padding: 8px 12px; font-size: 14px;" onclick="toggleDropdown('stats-status', event)">狀態: 全狀態 ▾</div>
                   <div class="select-items pixel-border" id="stats-status" style="display:none;"></div>
                 </div>
               </div>
@@ -82,7 +84,7 @@
 
   <div id="modal-overlay" class="modal-overlay">
     <div class="pixel-modal navy-theme">
-      <div class="modal-header-bar"><span>TASK_CONFIGURATION_V6.8</span><span class="pixel-close" onclick="closeModal()">[X]</span></div>
+      <div class="modal-header-bar"><span>TASK_CONFIGURATION_V6.9</span><span class="pixel-close" onclick="closeModal()">[X]</span></div>
       <form id="issueForm" class="modal-body">
         <input type="hidden" id="edit-id">
         <div class="field-grid-73">
