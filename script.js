@@ -66,6 +66,15 @@ const fillCheckboxes = (id, list, data, onChangeCode) => {
   }
 };
 
+// 更新狀態下拉選單的文字顯示
+function updateStatsStatusText() {
+  const vals = getCheckedValues('stats-status');
+  const txt = document.getElementById('stats-status-text');
+  if (vals.length === 0) txt.innerText = "狀態: 全狀態 ▾";
+  else txt.innerText = vals.length > 1 ? `狀態: 已選(${vals.length}) ▾` : `狀態: ${vals[0]} ▾`;
+  renderStats();
+}
+
 async function fetchData() {
   const resp = await fetch(SCRIPT_URL + '?action=getData');
   const data = await resp.json();
@@ -96,7 +105,8 @@ async function fetchData() {
   fillCheckboxes('items-customer', 'customers', data, 'renderIssues()');
   fillCheckboxes('ev-participants', 'owners', data, 'updateParticipantsText()');
   
-  fillCheckboxes('stats-status', 'statusList', data, 'renderStats()');
+  // 綁定新的狀態篩選器觸發函數
+  fillCheckboxes('stats-status', 'statusList', data, 'updateStatsStatusText()');
   
   fillFormSelect('input-owner', 'owners');
   fillFormSelect('input-status', 'statusList');
@@ -145,9 +155,10 @@ function changeCalendarWeek(offsetWeeks) {
   renderCalendar();
 }
 
+// 防呆解析，完美應對 "-" 或 "/" 等格式
 function parseDateSafe(dStr) {
   if (!dStr) return 0;
-  let parts = String(dStr).split('-');
+  let parts = String(dStr).split(/[-/T ]/);
   if (parts.length < 3) return 0;
   return new Date(parts[0], parts[1] - 1, parts[2]).getTime();
 }
@@ -419,7 +430,7 @@ async function deleteEvent() {
   isMutating = false;
 }
 
-// ================= 負責人統計 (✨ 加入建立日期年月區間篩選) =================
+// ================= 負責人統計 (加入超級日期解析與狀態過濾) =================
 function renderStats() {
   const container = document.getElementById('stats-bars');
   const ownerCounts = {};
@@ -431,16 +442,24 @@ function renderStats() {
 
   allIssues.forEach(i => {
     const stat = String(i.status);
+    
+    // 預設全狀態：如果沒勾選，代表全顯示（包含已解決）。如果有勾選，就只顯示有勾的。
     if(fStats.length > 0 && !fStats.includes(stat)) return; 
     
-    // ✨ 建立日期年月篩選器邏輯
+    // 建立區間精準判斷
+    let issueMonth = "";
     if (i.date) {
-      let issueMonth = String(i.date).substring(0, 7); // 擷取前7碼 (YYYY-MM)
+      let dParts = String(i.date).split(/[-/T ]/); // 支援 2026/03 或 2026-03
+      if (dParts.length >= 2) {
+        issueMonth = `${dParts[0]}-${dParts[1].padStart(2, '0')}`;
+      }
+    }
+
+    // 如果使用者有設定區間
+    if (startMonth || endMonth) {
+      if (!issueMonth) return; // 有設定區間但該任務無日期，則排除
       if (startMonth && issueMonth < startMonth) return;
       if (endMonth && issueMonth > endMonth) return;
-    } else if (startMonth || endMonth) {
-      // 如果有開篩選器但任務沒有日期，則不列入計算
-      return; 
     }
     
     const owner = String(i.owner);
@@ -475,7 +494,7 @@ const isTaskUrgent = (deadlineStr, status) => {
   if (!deadlineStr || status === "已解決" || status === "Done") return false;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  let dParts = String(deadlineStr).split('-');
+  let dParts = String(deadlineStr).split(/[-/T ]/);
   if(dParts.length < 3) return false;
   const deadline = new Date(dParts[0], dParts[1] - 1, dParts[2]);
   deadline.setHours(0, 0, 0, 0);
