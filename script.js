@@ -1,4 +1,4 @@
-const SCRIPT_URL = '您的GAS部署網址'; 
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyGv45ED8BxN260ZELjX0J6kFDKb8XihI1H7wmz8lYpiG5iNKQSolNDNOCpRE6IZDFAJg/exec'; 
 let allIssues = [];
 let allEvents = [];
 let dataConfig = {};
@@ -767,3 +767,4 @@ async function submitIssue() {
   btn.innerText = isEdit ? "[ 編輯完成 ]" : "[ 建立完成 ]";
   btn.disabled = false;
 }
+
