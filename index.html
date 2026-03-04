@@ -26,6 +26,7 @@
       <nav class="sidebar pixel-border">
         <button class="nav-btn active" id="btn-tab-main" onclick="switchTab('tab-main')">儀表板<br><small>(Dashboard)</small></button>
         <button class="nav-btn" id="btn-tab-issues" onclick="switchTab('tab-issues')">任務清單<br><small>(Issues)</small></button>
+        <button class="nav-btn" id="btn-tab-manager" onclick="switchTab('tab-manager')" style="display:none; color: #ff0055;">主管事務管理<br><small>(Manager)</small></button>
       </nav>
 
       <main class="main-content">
@@ -74,17 +75,30 @@
               <div class="custom-select"><div class="select-selected pixel-input" onclick="toggleDropdown('items-status', event)">狀態 ▾</div><div class="select-items pixel-border" id="items-status" style="display:none;"></div></div>
               <div class="custom-select"><div class="select-selected pixel-input" onclick="toggleDropdown('items-customer', event)">客戶別 ▾</div><div class="select-items pixel-border" id="items-customer" style="display:none;"></div></div>
             </div>
-            <button class="pixel-btn btn-add" style="line-height: 1.4;" onclick="openModal()">+ 新增<br>任務</button>
+            <button class="pixel-btn btn-add" style="line-height: 1.4;" onclick="openModal('TS')">+ 新增<br>任務</button>
           </div>
           <div class="todo-grid" id="issue-display"></div>
         </div>
+
+        <div id="tab-manager" class="tab-section" style="display:none;">
+          <div class="control-panel pixel-border" style="border-color: #ff0055;">
+            <input type="text" id="search-input-mgr" class="pixel-input" placeholder="搜尋主管事務..." oninput="renderManagerIssues()">
+            <div class="filter-group">
+              <div class="custom-select"><div class="select-selected pixel-input" onclick="toggleDropdown('items-status-mgr', event)">狀態 ▾</div><div class="select-items pixel-border" id="items-status-mgr" style="display:none;"></div></div>
+              <div class="custom-select"><div class="select-selected pixel-input" onclick="toggleDropdown('items-customer-mgr', event)">客戶別 ▾</div><div class="select-items pixel-border" id="items-customer-mgr" style="display:none;"></div></div>
+            </div>
+            <button class="pixel-btn btn-add" style="line-height: 1.4; background:#ff0055;" onclick="openModal('MGR')">+ 新增<br>事務</button>
+          </div>
+          <div class="todo-grid" id="manager-issue-display"></div>
+        </div>
+
       </main>
     </div>
   </div>
 
   <div id="modal-overlay" class="modal-overlay">
     <div class="pixel-modal navy-theme">
-      <div class="modal-header-bar"><span>TASK_CONFIGURATION_V6.9</span><span class="pixel-close" onclick="closeModal()">[X]</span></div>
+      <div class="modal-header-bar"><span id="modal-title">TASK_CONFIGURATION_V7.0</span><span class="pixel-close" onclick="closeModal()">[X]</span></div>
       <form id="issueForm" class="modal-body">
         <input type="hidden" id="edit-id">
         <div class="field-grid-73">
