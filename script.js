@@ -1,23 +1,36 @@
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyGv45ED8BxN260ZELjX0J6kFDKb8XihI1H7wmz8lYpiG5iNKQSolNDNOCpRE6IZDFAJg/exec'; 
+const SCRIPT_URL = '您的GAS部署網址'; 
 let allIssues = [];
 let allEvents = [];
 let dataConfig = {};
 let isMutating = false; 
 
+// ✨ 記錄當前彈出視窗是普通任務('TS')還是主管事務('MGR')
+let currentModalType = 'TS';
+
 let calBaseDate = new Date();
 calBaseDate.setDate(calBaseDate.getDate() - calBaseDate.getDay() - 7);
 
 function handleLogin() {
-  if(document.getElementById('login-pwd').value === "13091309") {
+  const pwd = document.getElementById('login-pwd').value;
+  if(pwd === "13091309") {
     document.getElementById('login-overlay').style.display = 'none';
     document.getElementById('main-ui').style.display = 'block';
     init();
-  } else { alert("歐嚕嚕咒語無效，存取拒絕"); }
+  } else if (pwd === "13321332") {
+    // ✨ 專屬主管密碼
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('main-ui').style.display = 'block';
+    document.getElementById('btn-tab-manager').style.display = 'block';
+    init();
+  } else { 
+    alert("歐嚕嚕咒語無效，存取拒絕"); 
+  }
 }
 
 async function init() {
   await fetchData();
   renderIssues();
+  renderManagerIssues();
   renderCalendar();
   renderStats();
   setInterval(silentSync, 10000);
@@ -32,6 +45,7 @@ async function silentSync() {
     allIssues = data.issues || [];
     allEvents = data.events || [];
     renderIssues();
+    renderManagerIssues();
     renderCalendar();
     renderStats();
   } catch (e) { }
@@ -66,7 +80,6 @@ const fillCheckboxes = (id, list, data, onChangeCode) => {
   }
 };
 
-// 更新狀態下拉選單的文字顯示
 function updateStatsStatusText() {
   const vals = getCheckedValues('stats-status');
   const txt = document.getElementById('stats-status-text');
@@ -105,7 +118,10 @@ async function fetchData() {
   fillCheckboxes('items-customer', 'customers', data, 'renderIssues()');
   fillCheckboxes('ev-participants', 'owners', data, 'updateParticipantsText()');
   
-  // 綁定新的狀態篩選器觸發函數
+  // 主管專屬篩選器
+  fillCheckboxes('items-status-mgr', 'statusList', data, 'renderManagerIssues()');
+  fillCheckboxes('items-customer-mgr', 'customers', data, 'renderManagerIssues()');
+
   fillCheckboxes('stats-status', 'statusList', data, 'updateStatsStatusText()');
   
   fillFormSelect('input-owner', 'owners');
@@ -155,7 +171,6 @@ function changeCalendarWeek(offsetWeeks) {
   renderCalendar();
 }
 
-// 防呆解析，完美應對 "-" 或 "/" 等格式
 function parseDateSafe(dStr) {
   if (!dStr) return 0;
   let parts = String(dStr).split(/[-/T ]/);
@@ -418,7 +433,7 @@ async function submitEvent() {
 
 async function deleteEvent() {
   const pwd = prompt("請輸入歐嚕嚕咒語以確認刪除活動:");
-  if (pwd !== "13091309") { alert("咒語錯誤，取消刪除"); return; }
+  if (pwd !== "13091309" && pwd !== "13321332") { alert("咒語錯誤，取消刪除"); return; }
   
   const id = document.getElementById('edit-ev-id').value;
   allEvents = allEvents.filter(ev => ev.id !== id);
@@ -430,34 +445,32 @@ async function deleteEvent() {
   isMutating = false;
 }
 
-// ================= 負責人統計 (加入超級日期解析與狀態過濾) =================
+// ================= 負責人統計 (✨ 隱藏主管專案) =================
 function renderStats() {
   const container = document.getElementById('stats-bars');
   const ownerCounts = {};
   let totalIssues = 0;
 
   const fStats = getCheckedValues('stats-status'); 
-  const startMonth = document.getElementById('stats-month-start').value; // YYYY-MM
-  const endMonth = document.getElementById('stats-month-end').value;     // YYYY-MM
+  const startMonth = document.getElementById('stats-month-start').value; 
+  const endMonth = document.getElementById('stats-month-end').value;     
 
   allIssues.forEach(i => {
+    // ✨ 防護：只要是主管的秘密任務(ID開頭MGR)，絕對不統計！
+    if (i.id && String(i.id).startsWith('MGR-')) return;
+
     const stat = String(i.status);
-    
-    // 預設全狀態：如果沒勾選，代表全顯示（包含已解決）。如果有勾選，就只顯示有勾的。
     if(fStats.length > 0 && !fStats.includes(stat)) return; 
     
-    // 建立區間精準判斷
     let issueMonth = "";
     if (i.date) {
-      let dParts = String(i.date).split(/[-/T ]/); // 支援 2026/03 或 2026-03
+      let dParts = String(i.date).split(/[-/T ]/); 
       if (dParts.length >= 2) {
         issueMonth = `${dParts[0]}-${dParts[1].padStart(2, '0')}`;
       }
     }
-
-    // 如果使用者有設定區間
     if (startMonth || endMonth) {
-      if (!issueMonth) return; // 有設定區間但該任務無日期，則排除
+      if (!issueMonth) return; 
       if (startMonth && issueMonth < startMonth) return;
       if (endMonth && issueMonth > endMonth) return;
     }
@@ -488,7 +501,7 @@ function renderStats() {
   }).join('');
 }
 
-// ================= 任務清單功能 =================
+// ================= 任務清單功能 (✨ 分離主管與一般任務) =================
 
 const isTaskUrgent = (deadlineStr, status) => {
   if (!deadlineStr || status === "已解決" || status === "Done") return false;
@@ -503,6 +516,7 @@ const isTaskUrgent = (deadlineStr, status) => {
   return diffDays <= 2; 
 };
 
+// 渲染一般任務 (排除主管事務)
 function renderIssues() {
   const container = document.getElementById('issue-display');
   const search = document.getElementById('search-input').value.toLowerCase();
@@ -511,6 +525,7 @@ function renderIssues() {
   const fCusts = getCheckedValues('items-customer');
 
   let filtered = allIssues.filter(i => 
+    (!i.id || !String(i.id).startsWith('MGR-')) && // ✨ 隱藏主管專案
     String(i.issue).toLowerCase().includes(search) &&
     (fOwners.length === 0 || fOwners.includes(String(i.owner))) &&
     (fStats.length === 0 ? (String(i.status) !== "已解決" && String(i.status) !== "Done") : fStats.includes(String(i.status))) &&
@@ -548,12 +563,72 @@ function renderIssues() {
   }).join('');
 }
 
-function openModal() {
+// ✨ 渲染主管專屬任務 (只顯示 MGR 開頭的)
+function renderManagerIssues() {
+  const container = document.getElementById('manager-issue-display');
+  const search = document.getElementById('search-input-mgr').value.toLowerCase();
+  const fStats = getCheckedValues('items-status-mgr');
+  const fCusts = getCheckedValues('items-customer-mgr');
+
+  let filtered = allIssues.filter(i => 
+    i.id && String(i.id).startsWith('MGR-') && // ✨ 只抓取主管專案
+    String(i.issue).toLowerCase().includes(search) &&
+    (fStats.length === 0 ? (String(i.status) !== "已解決" && String(i.status) !== "Done") : fStats.includes(String(i.status))) &&
+    (fCusts.length === 0 || fCusts.includes(String(i.customer)))
+  ).sort((a, b) => {
+    const statA = String(a.status);
+    const statB = String(b.status);
+    const isDoneA = (statA === "已解決" || statA === "Done");
+    const isDoneB = (statB === "已解決" || statB === "Done");
+    if (isDoneA !== isDoneB) return isDoneA ? 1 : -1;
+    
+    const urgentA = isTaskUrgent(a.deadline, statA);
+    const urgentB = isTaskUrgent(b.deadline, statB);
+    if (urgentA !== urgentB) return urgentA ? -1 : 1;
+
+    const priA = String(a.priority);
+    const priB = String(b.priority);
+    const isHighA = priA.includes('高') || priA.includes('Critical');
+    const isHighB = priB.includes('高') || priB.includes('Critical');
+    if (isHighA !== isHighB) return isHighA ? -1 : 1;
+    
+    return new Date(b.date) - new Date(a.date);
+  });
+
+  container.innerHTML = filtered.map(i => {
+    const stat = String(i.status);
+    const isDone = (stat === "已解決" || stat === "Done");
+    const urgentClass = (!isDone && isTaskUrgent(i.deadline, stat)) ? 'urgent-card' : '';
+    
+    return `<div class="pebble ${isDone ? 'resolved-card' : ''} ${urgentClass}" onclick="openEdit('${i.id}')">
+      <div style="font-size:12px; margin-bottom:8px; color:${(String(i.priority).includes('高') || String(i.priority).includes('Critical')) ? '#ff0055' : 'var(--pixel-blue)'}">[ ${stat} ]</div>
+      <div style="font-size:22px; margin-bottom:12px; line-height:1.3;">${i.issue}</div>
+      <div style="font-size:14px; color:#888;">${i.owner} | ${i.customer} | ${i.project}<br><small>建立: ${i.date} | 預計: ${i.deadline || '未定'}</small></div>
+    </div>`;
+  }).join('');
+}
+
+// 共用任務視窗邏輯
+function openModal(type = 'TS') {
+  currentModalType = type; // ✨ 記錄目前是開一般還是主管任務
+  
   document.getElementById('edit-id').value = "";
   document.getElementById('issueForm').reset();
   document.getElementById('link-group').innerHTML = '<input type="text" class="pixel-input wide link-entry" placeholder="https://...">';
   document.getElementById('input-created-date').value = new Date().toLocaleDateString('zh-TW');
   
+  document.getElementById('modal-title').innerText = type === 'MGR' ? 'MANAGER_AFFAIRS_V7.0' : 'TASK_CONFIGURATION_V7.0';
+  
+  const ownerSelect = document.getElementById('input-owner');
+  if (type === 'MGR') {
+      // ✨ 主管模式防呆：自動填寫並鎖定 Owner
+      ownerSelect.innerHTML = '<option value="Charlie (主管)" selected>Charlie (主管)</option>';
+      ownerSelect.disabled = true;
+  } else {
+      fillFormSelect('input-owner', 'owners');
+      ownerSelect.disabled = false;
+  }
+
   const btn = document.getElementById('submit-btn');
   btn.innerText = "[ 建立完成 ]";
   btn.disabled = false;
@@ -565,6 +640,11 @@ function openModal() {
 function openEdit(id) {
   const i = allIssues.find(x => x.id === id);
   if(!i) return;
+  
+  // ✨ 判斷舊資料是主管任務還是普通任務
+  currentModalType = String(id).startsWith('MGR-') ? 'MGR' : 'TS';
+  document.getElementById('modal-title').innerText = currentModalType === 'MGR' ? 'MANAGER_AFFAIRS_V7.0' : 'TASK_CONFIGURATION_V7.0';
+
   document.getElementById('edit-id').value = i.id;
   document.getElementById('input-issue').value = i.issue;
   
@@ -580,7 +660,17 @@ function openEdit(id) {
     }
   };
 
-  setSelectSafe('input-owner', i.owner);
+  const ownerSelect = document.getElementById('input-owner');
+  if (currentModalType === 'MGR') {
+      // ✨ 主管模式防呆
+      ownerSelect.innerHTML = `<option value="${i.owner}" selected>${i.owner}</option>`;
+      ownerSelect.disabled = true;
+  } else {
+      fillFormSelect('input-owner', 'owners');
+      ownerSelect.disabled = false;
+      setSelectSafe('input-owner', i.owner);
+  }
+
   setSelectSafe('input-status', i.status);
   setSelectSafe('input-customer', i.customer);
   setSelectSafe('input-project', i.project);
@@ -624,11 +714,11 @@ function closeModal() {
 
 async function deleteIssue() {
   const pwd = prompt("請輸入歐嚕嚕咒語以確認刪除:");
-  if (pwd !== "13091309") { alert("咒語錯誤，取消刪除"); return; }
+  if (pwd !== "13091309" && pwd !== "13321332") { alert("咒語錯誤，取消刪除"); return; }
   const issueId = document.getElementById('edit-id').value;
   if (!issueId) return;
   allIssues = allIssues.filter(issue => issue.id !== issueId);
-  renderIssues(); renderStats(); closeModal();
+  renderIssues(); renderManagerIssues(); renderStats(); closeModal();
   
   isMutating = true;
   try { await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "delete", id: issueId }) }); } catch(err) {}
@@ -645,11 +735,18 @@ async function submitIssue() {
   
   const linkVal = Array.from(document.querySelectorAll('.link-entry')).map(el => el.value).filter(v => v).join(' | ');
   const isEdit = document.getElementById('edit-id').value !== "";
-  const issueId = document.getElementById('edit-id').value || "TS-" + Date.now();
+  
+  // ✨ 主管任務強制加上 MGR- 標籤，一般任務使用 TS- 標籤
+  const prefix = currentModalType === 'MGR' ? 'MGR-' : 'TS-';
+  const issueId = document.getElementById('edit-id').value || prefix + Date.now();
+
+  // ✨ 極致防呆：無論如何，只要是主管模式，強制寫入 Charlie (主管)
+  let finalOwner = document.getElementById('input-owner').value;
+  if (currentModalType === 'MGR') finalOwner = 'Charlie (主管)';
 
   const payload = {
     action: isEdit ? "edit" : "add", id: issueId, issue: document.getElementById('input-issue').value,
-    owner: document.getElementById('input-owner').value, status: document.getElementById('input-status').value,
+    owner: finalOwner, status: document.getElementById('input-status').value,
     customer: document.getElementById('input-customer').value, project: document.getElementById('input-project').value,
     date: document.getElementById('input-created-date').value, deadline: document.getElementById('input-deadline').value,
     priority: document.getElementById('input-priority').value, description: document.getElementById('input-description').value,
@@ -661,7 +758,7 @@ async function submitIssue() {
     if (idx > -1) allIssues[idx] = payload;
   } else { allIssues.push(payload); }
   
-  renderIssues(); renderStats(); closeModal();
+  renderIssues(); renderManagerIssues(); renderStats(); closeModal();
 
   isMutating = true;
   try { await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) }); } catch (e) { console.error(e); }
