@@ -40,13 +40,18 @@ body { background: var(--bg-color); color: #fff; font-family: var(--main-font); 
 .cal-date-num { font-size: 16px; color: #888; position: absolute; top: 5px; right: 8px; }
 .cal-cell.today .cal-date-num { color: var(--pixel-green); font-weight: bold; }
 
-/* 行事曆長條圖高度放大至 30px，隱形佔位改成 33px */
 .cal-event { color: #fff; font-size: 14px; height: 30px; line-height: 30px; padding: 0 6px; margin-bottom: 3px; border-radius: 4px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight:bold; box-sizing: border-box; text-align: center; }
 .cal-event:hover { filter: brightness(1.2); }
 .cal-event-spacer { height: 33px; width: 100%; } 
 .cal-event.multi-start { margin-right: -7px; border-top-right-radius: 0; border-bottom-right-radius: 0; position: relative; z-index: 5; }
 .cal-event.multi-middle { margin-left: -7px; margin-right: -7px; border-radius: 0; position: relative; z-index: 5; }
 .cal-event.multi-end { margin-left: -7px; border-top-left-radius: 0; border-bottom-left-radius: 0; position: relative; z-index: 5; }
+
+/* ✨ 統計圖表新排版 */
+.stats-header-wrap { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 15px; }
+.stats-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.month-filter { display: flex; align-items: center; gap: 8px; }
+.month-filter input { padding: 8px; font-size: 14px; width: 140px; }
 
 .stat-row { display: flex; align-items: center; margin-bottom: 15px; gap: 15px; }
 .stat-label { width: 120px; font-size: 16px; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -79,38 +84,39 @@ body { background: var(--bg-color); color: #fff; font-family: var(--main-font); 
 
 /* ================= 📱 手機版 RWD 響應式優化 ================= */
 @media (max-width: 850px) {
-  /* 整體排版改為垂直堆疊，解除鎖定高度 */
   .layout-container { flex-direction: column; height: auto; min-height: calc(100vh - 80px); overflow: visible; padding-bottom: 40px; width: 98%; }
   
-  /* 側邊欄改為頂部橫向導覽列 */
   .sidebar { width: 100%; flex-direction: row; padding: 10px; justify-content: center; z-index: 10; border-bottom: 4px solid #3e4a6d; }
   .nav-btn { flex: 1; margin: 0 5px; padding: 12px 5px; font-size: 14px; }
   
-  /* 主要內容區放寬限制 */
   .main-content { overflow: visible; padding-right: 0; }
   header h1 { font-size: 22px; text-align: center; line-height: 1.5; padding: 10px; }
 
-  /* 任務清單改為單欄排列 */
+  /* 任務清單排版 */
   .todo-grid { grid-template-columns: 1fr; }
   .control-panel { flex-direction: column; align-items: stretch; gap: 15px; padding: 15px; }
   .filter-group { flex-direction: column; width: 100%; }
   .custom-select { width: 100%; }
 
-  /* 表單視窗欄位全部改為垂直排列 */
+  /* ✨ 統計區塊手機排版：年月篩選器變寬 */
+  .stats-header-wrap { flex-direction: column; align-items: stretch; gap: 15px;}
+  .stats-controls { flex-direction: column; align-items: stretch; width: 100%; }
+  .month-filter { justify-content: space-between; }
+  .month-filter input { width: 45%; }
+  
+  /* 表單視窗欄位 */
   .field-grid-73, .field-grid-4, .field-grid { grid-template-columns: 1fr; gap: 15px; }
   .pixel-modal { width: 95vw; height: 95vh; }
   .modal-body { padding: 15px; }
   .modal-header-bar { padding: 15px; font-size: 16px; }
 
-  /* 行事曆防變形魔法 (限制最小寬度，允許手指左右滑動) */
+  /* 行事曆防變形 */
   .calendar-container { overflow-x: auto; padding: 15px 10px; }
-  .cal-grid, .cal-weekdays { min-width: 800px; /* 鎖定最小寬度，確保跨日文字與格子不被壓扁 */ }
+  .cal-grid, .cal-weekdays { min-width: 800px; }
   
-  /* 行事曆頂部按鈕重排 */
   .cal-header { flex-wrap: wrap; gap: 10px; justify-content: center; }
   .cal-header h2 { order: -1; width: 100%; text-align: center; margin-bottom: 10px !important; }
   .cal-header .pixel-btn { padding: 12px; font-size: 14px; margin: 0 !important; flex: 1; text-align: center;}
   
-  /* 統計圖表文字調整 */
   .stat-label { width: 85px; font-size: 13px; }
 }
