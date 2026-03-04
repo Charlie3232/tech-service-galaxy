@@ -10,6 +10,16 @@ let currentModalType = 'TS';
 let calBaseDate = new Date();
 calBaseDate.setDate(calBaseDate.getDate() - calBaseDate.getDay() - 7);
 
+// ✨ 修復關鍵：將選單生成器移到外面，讓所有按鈕都能自由呼叫！
+function fillFormSelect(id, list) {
+  const el = document.getElementById(id);
+  if(el && dataConfig[list]) {
+    let options = dataConfig[list].map(t => `<option value="${t}">${t}</option>`);
+    options.unshift('<option value="" disabled selected>請選擇...</option>');
+    el.innerHTML = options.join('');
+  }
+}
+
 function handleLogin() {
   const pwd = document.getElementById('login-pwd').value;
   if(pwd === "13091309") {
@@ -17,7 +27,6 @@ function handleLogin() {
     document.getElementById('main-ui').style.display = 'block';
     init();
   } else if (pwd === "13321332") {
-    // ✨ 專屬主管密碼
     document.getElementById('login-overlay').style.display = 'none';
     document.getElementById('main-ui').style.display = 'block';
     document.getElementById('btn-tab-manager').style.display = 'block';
@@ -94,15 +103,6 @@ async function fetchData() {
   allIssues = data.issues || [];
   allEvents = data.events || [];
   dataConfig = data.config || {};
-  
-  const fillFormSelect = (id, list) => {
-    const el = document.getElementById(id);
-    if(el && dataConfig[list] && el.options.length <= 1) {
-      let options = dataConfig[list].map(t => `<option value="${t}">${t}</option>`);
-      options.unshift('<option value="" disabled selected>請選擇...</option>');
-      el.innerHTML = options.join('');
-    }
-  };
 
   const fillCategory = () => {
     const el = document.getElementById('ev-category');
@@ -118,10 +118,8 @@ async function fetchData() {
   fillCheckboxes('items-customer', 'customers', data, 'renderIssues()');
   fillCheckboxes('ev-participants', 'owners', data, 'updateParticipantsText()');
   
-  // 主管專屬篩選器
   fillCheckboxes('items-status-mgr', 'statusList', data, 'renderManagerIssues()');
   fillCheckboxes('items-customer-mgr', 'customers', data, 'renderManagerIssues()');
-
   fillCheckboxes('stats-status', 'statusList', data, 'updateStatsStatusText()');
   
   fillFormSelect('input-owner', 'owners');
@@ -445,7 +443,7 @@ async function deleteEvent() {
   isMutating = false;
 }
 
-// ================= 負責人統計 (✨ 隱藏主管專案) =================
+// ================= 負責人統計 =================
 function renderStats() {
   const container = document.getElementById('stats-bars');
   const ownerCounts = {};
@@ -456,7 +454,6 @@ function renderStats() {
   const endMonth = document.getElementById('stats-month-end').value;     
 
   allIssues.forEach(i => {
-    // ✨ 防護：只要是主管的秘密任務(ID開頭MGR)，絕對不統計！
     if (i.id && String(i.id).startsWith('MGR-')) return;
 
     const stat = String(i.status);
@@ -501,7 +498,7 @@ function renderStats() {
   }).join('');
 }
 
-// ================= 任務清單功能 (✨ 分離主管與一般任務) =================
+// ================= 任務清單功能 =================
 
 const isTaskUrgent = (deadlineStr, status) => {
   if (!deadlineStr || status === "已解決" || status === "Done") return false;
@@ -516,7 +513,6 @@ const isTaskUrgent = (deadlineStr, status) => {
   return diffDays <= 2; 
 };
 
-// 渲染一般任務 (排除主管事務)
 function renderIssues() {
   const container = document.getElementById('issue-display');
   const search = document.getElementById('search-input').value.toLowerCase();
@@ -525,7 +521,7 @@ function renderIssues() {
   const fCusts = getCheckedValues('items-customer');
 
   let filtered = allIssues.filter(i => 
-    (!i.id || !String(i.id).startsWith('MGR-')) && // ✨ 隱藏主管專案
+    (!i.id || !String(i.id).startsWith('MGR-')) && 
     String(i.issue).toLowerCase().includes(search) &&
     (fOwners.length === 0 || fOwners.includes(String(i.owner))) &&
     (fStats.length === 0 ? (String(i.status) !== "已解決" && String(i.status) !== "Done") : fStats.includes(String(i.status))) &&
@@ -563,7 +559,6 @@ function renderIssues() {
   }).join('');
 }
 
-// ✨ 渲染主管專屬任務 (只顯示 MGR 開頭的)
 function renderManagerIssues() {
   const container = document.getElementById('manager-issue-display');
   const search = document.getElementById('search-input-mgr').value.toLowerCase();
@@ -571,7 +566,7 @@ function renderManagerIssues() {
   const fCusts = getCheckedValues('items-customer-mgr');
 
   let filtered = allIssues.filter(i => 
-    i.id && String(i.id).startsWith('MGR-') && // ✨ 只抓取主管專案
+    i.id && String(i.id).startsWith('MGR-') && 
     String(i.issue).toLowerCase().includes(search) &&
     (fStats.length === 0 ? (String(i.status) !== "已解決" && String(i.status) !== "Done") : fStats.includes(String(i.status))) &&
     (fCusts.length === 0 || fCusts.includes(String(i.customer)))
@@ -608,9 +603,8 @@ function renderManagerIssues() {
   }).join('');
 }
 
-// 共用任務視窗邏輯
 function openModal(type = 'TS') {
-  currentModalType = type; // ✨ 記錄目前是開一般還是主管任務
+  currentModalType = type; 
   
   document.getElementById('edit-id').value = "";
   document.getElementById('issueForm').reset();
@@ -621,7 +615,6 @@ function openModal(type = 'TS') {
   
   const ownerSelect = document.getElementById('input-owner');
   if (type === 'MGR') {
-      // ✨ 主管模式防呆：自動填寫並鎖定 Owner
       ownerSelect.innerHTML = '<option value="Charlie (主管)" selected>Charlie (主管)</option>';
       ownerSelect.disabled = true;
   } else {
@@ -641,7 +634,6 @@ function openEdit(id) {
   const i = allIssues.find(x => x.id === id);
   if(!i) return;
   
-  // ✨ 判斷舊資料是主管任務還是普通任務
   currentModalType = String(id).startsWith('MGR-') ? 'MGR' : 'TS';
   document.getElementById('modal-title').innerText = currentModalType === 'MGR' ? 'MANAGER_AFFAIRS_V7.0' : 'TASK_CONFIGURATION_V7.0';
 
@@ -662,7 +654,6 @@ function openEdit(id) {
 
   const ownerSelect = document.getElementById('input-owner');
   if (currentModalType === 'MGR') {
-      // ✨ 主管模式防呆
       ownerSelect.innerHTML = `<option value="${i.owner}" selected>${i.owner}</option>`;
       ownerSelect.disabled = true;
   } else {
@@ -736,11 +727,9 @@ async function submitIssue() {
   const linkVal = Array.from(document.querySelectorAll('.link-entry')).map(el => el.value).filter(v => v).join(' | ');
   const isEdit = document.getElementById('edit-id').value !== "";
   
-  // ✨ 主管任務強制加上 MGR- 標籤，一般任務使用 TS- 標籤
   const prefix = currentModalType === 'MGR' ? 'MGR-' : 'TS-';
   const issueId = document.getElementById('edit-id').value || prefix + Date.now();
 
-  // ✨ 極致防呆：無論如何，只要是主管模式，強制寫入 Charlie (主管)
   let finalOwner = document.getElementById('input-owner').value;
   if (currentModalType === 'MGR') finalOwner = 'Charlie (主管)';
 
@@ -767,4 +756,3 @@ async function submitIssue() {
   btn.innerText = isEdit ? "[ 編輯完成 ]" : "[ 建立完成 ]";
   btn.disabled = false;
 }
-
